@@ -1,5 +1,60 @@
 package Monitoring::Livestatus::Class::Lite;
 
+=head1 NAME
+
+Monitoring::Livestatus::Class::Lite - Object-Oriented interface for
+Monitoring::Livestatus
+
+=head1 DESCRIPTION
+
+This module is an object-oriented interface for Monitoring::Livestatus.
+Just like Monitoring::Livestatus::Class but without Moose.
+
+=head1 SYNOPSIS
+
+    use Monitoring::Livestatus::Class::Lite;
+
+    my $class = Monitoring::Livestatus::Class::Lite->new(
+        peer => '/var/lib/nagios3/rw/livestatus.sock'
+    );
+
+    my $hosts = $class->table('hosts');
+    my @data = $hosts->columns('display_name')->filter(
+        { display_name => { '-or' => [qw/test_host_47 test_router_3/] } }
+    )->hashref_array();
+    print Dumper \@data;
+
+=head1 ATTRIBUTES
+
+=head2 peer
+
+Connection point to the livestatus addon. This can be a unix
+domain or tcp socket.
+
+=head3 Socket
+
+    my $class = Monitoring::Livestatus::Class->new(
+        peer => '/var/lib/nagios3/rw/livestatus.sock'
+    );
+
+=head3 TCP Connection
+
+    my $class = Monitoring::Livestatus::Class->new(
+        peer => '192.168.1.1:2134'
+    );
+
+=head1 ENVIRONMENT VARIABLES
+
+=head2 MONITORING_LIVESTATUS_CLASS_TRACE
+
+Print tracer output from this object.
+
+=head2 MONITORING_LIVESTATUS_CLASS_TEST_PEER
+
+Set peer for live tests.
+
+=cut
+
 use warnings;
 use strict;
 use Carp;
@@ -14,6 +69,16 @@ our $compining_prefix = '';
 our $filter_mode      = '';
 
 ################################################################################
+
+=head1 METHODS
+
+=head2 new
+
+    new($options)
+
+create new Class module
+
+=cut
 sub new {
     my($class, $self) = @_;
 
@@ -32,8 +97,17 @@ sub new {
 }
 
 ################################################################################
+
+=head2 table
+
+    table($tablename)
+
+return instance for this table
+
+=cut
 sub table {
     my($self, $name) = @_;
+    confess('need table name') unless $name;
     my $table = {
             '_class' => $self->{'backend_obj'},
             '_table' => $name,
@@ -43,6 +117,14 @@ sub table {
 }
 
 ################################################################################
+
+=head2 columns
+
+    columns($columns)
+
+list of columns to fetch
+
+=cut
 sub columns {
     my($self, @columns) = @_;
     $self->{'_columns'} = \@columns;
@@ -50,6 +132,14 @@ sub columns {
 }
 
 ################################################################################
+
+=head2 options
+
+    options($options)
+
+set query options
+
+=cut
 sub options {
     my($self, $options) = @_;
     $self->{'_options'} = $options;
@@ -57,6 +147,14 @@ sub options {
 }
 
 ################################################################################
+
+=head2 filter
+
+    filter($filter)
+
+filter result set
+
+=cut
 sub filter {
     my($self, $filter) = @_;
     $self->{'_filter'} = $self->{'_filter'} ? [@{$self->{'_filter'}}, $filter] : [$filter];
@@ -64,6 +162,14 @@ sub filter {
 }
 
 ################################################################################
+
+=head2 stats
+
+    stats($statsfilter)
+
+set stats filter
+
+=cut
 sub stats {
     my($self, $filter) = @_;
     $self->{'_statsfilter'} = $self->{'_statsfilter'} ? [@{$self->{'_statsfilter'}}, $filter] : [$filter];
@@ -71,6 +177,14 @@ sub stats {
 }
 
 ################################################################################
+
+=head2 hashref_pk
+
+    hashref_pk($key)
+
+return result as hash ref by key
+
+=cut
 sub hashref_pk {
     my($self, $key) = @_;
 
@@ -85,6 +199,14 @@ sub hashref_pk {
 }
 
 ################################################################################
+
+=head2 hashref_array
+
+    hashref_array()
+
+return result as array
+
+=cut
 sub hashref_array {
     my($self) = @_;
     my @data = $self->_execute();
@@ -97,6 +219,8 @@ sub hashref_array {
 sub _execute {
     my($self) = @_;
 
+    confess("no table??") unless $self->{'_table'};
+
     my @statements = ();
     if( $self->{'_columns'} ) {
         push @statements, sprintf('Columns: %s',join(' ',@{ $self->{'_columns'} }));
@@ -107,10 +231,10 @@ sub _execute {
         push @statements, @{$self->_apply_filter($self->{'_filter'})};
     }
     if( $self->{'_statsfilter'} ) {
-        push @statements, {$self->_apply_filter($self->{'_statsfilter'}, 'Stats')};
+        push @statements, @{$self->_apply_filter($self->{'_statsfilter'}, 'Stats')};
     }
 
-    unshift @statements, sprintf("GET %s",$self->{'_table'});
+    unshift @statements, sprintf("GET %s", $self->{'_table'});
 
     printf STDERR "EXEC: %s\n", join("\nEXEC: ",@statements) if $TRACE >= 1;
 
@@ -185,7 +309,7 @@ sub _cond_HASHREF {
         my $value = $cond->{$key};
         my $method ;
 
-        if ( $key =~ /^-/ ){
+        if ( $key =~ /^-/mxo ){
             # Child key for combining filters ( -and / -or )
             ( $child_combining_count, @child_statment ) = &_cond_op_in_hash($key, $value, $combining_count);
             $combining_count = $child_combining_count;
@@ -261,11 +385,11 @@ sub _cond_hashpair_HASHREF {
     foreach my $child_key ( keys %{ $values } ){
         my $child_value = $values->{ $child_key };
 
-        if ( $child_key =~ /^-/ ){
+        if ( $child_key =~ /^-/mxo ){
             my ( $child_combining_count, @child_statment ) = &_cond_op_in_hash($child_key, { $key => $child_value } , 0);
             $combining_count += $child_combining_count;
             push @statment, @child_statment;
-        } elsif ( $child_key =~ /^[!<>=~]/ ){
+        } elsif ( $child_key =~ /^[!<>=~]/mxo ){
             # Child key is a operator like:
             # =     equality
             # ~     match regular expression (substring match)
@@ -297,23 +421,23 @@ sub _cond_op_in_hash {
     my $combining_count = shift;
     print STDERR "#IN  _cond_op_in_hash $operator $value $combining_count\n" if $TRACE > 9;
 
-    if ( defined $operator and $operator =~ /^-/ ){
-        $operator =~ s/^-//; # remove -
-        $operator =~ s/^\s+|\s+$//g; # remove leading/trailing space
+    if ( defined $operator and $operator =~ /^-/mxo ){
+        $operator =~ s/^-//mxo; # remove -
+        $operator =~ s/^\s+|\s+$//gmxo; # remove leading/trailing space
         $operator = 'GroupBy' if ( $operator eq 'Groupby' );
     }
 
     my $operators = [{
-        regexp   => qr/(and|or)/ix,
+        regexp   => qr/(and|or)/mix,
         handler => '_cond_compining',
     }, {
-        regexp  => qr/(groupby)/ix,
+        regexp  => qr/(groupby)/mix,
         handler => '_cond_op_groupby',
     }, {
-        regexp  => qr/(sum|min|max|avg|std)/ix,
+        regexp  => qr/(sum|min|max|avg|std)/mix,
         handler => '_cond_op_simple'
     }, {
-        regexp  => qr/(isa)/ix,
+        regexp  => qr/(isa)/mix,
         handler => '_cond_op_isa'
     }];
     my $operator_config = first { $operator =~ $_->{'regexp'} } @{ $operators };
@@ -337,9 +461,9 @@ sub _cond_compining {
     $combining_count++;
     my @statment = ();
 
-    if ( defined $combining and $combining =~ /^-/ ){
-        $combining =~ s/^-//; # remove -
-        $combining =~ s/^\s+|\s+$//g; # remove leading/trailing space
+    if ( defined $combining and $combining =~ /^-/mxo ){
+        $combining =~ s/^-//mxo; # remove -
+        $combining =~ s/^\s+|\s+$//gmxo; # remove leading/trailing space
         $combining = ucfirst( $combining );
     }
     my ( $child_combining_count, @child_statment )= &_recurse_cond($value, 0 );
@@ -466,66 +590,15 @@ sub _cond_op_isa {
 1;
 __END__
 
-=head1 NAME
-
-Monitoring::Livestatus::Class::Lite - Object-Oriented interface for
-Monitoring::Livestatus
-
-=head1 DESCRIPTION
-
-This module is an object-oriented interface for Monitoring::Livestatus.
-Just like Monitoring::Livestatus::Class but without Moose.
-
 =head1 REPOSITORY
 
     Git: http://github.com/sni/Monitoring-Livestatus-Class-Lite
 
-=head1 SYNOPSIS
-
-    use Monitoring::Livestatus::Class::Lite;
-
-    my $class = Monitoring::Livestatus::Class::Lite->new(
-        peer => '/var/lib/nagios3/rw/livestatus.sock'
-    );
-
-    my $hosts = $class->table('hosts');
-    my @data = $hosts->columns('display_name')->filter(
-        { display_name => { '-or' => [qw/test_host_47 test_router_3/] } }
-    )->hashref_array();
-    print Dumper \@data;
-
-=head1 ATTRIBUTES
-
-=head2 peer
-
-Connection point to the livestatus addon. This can be a unix
-domain or tcp socket.
-
-=head3 Socket
-
-    my $class = Monitoring::Livestatus::Class->new(
-        peer => '/var/lib/nagios3/rw/livestatus.sock'
-    );
-
-=head3 TCP Connection
-
-    my $class = Monitoring::Livestatus::Class->new(
-        peer => '192.168.1.1:2134'
-    );
-
-=head1 ENVIRONMENT VARIABLES
-
-=head2 MONITORING_LIVESTATUS_CLASS_TRACE
-
-Print tracer output from this object.
-
-=head2 MONITORING_LIVESTATUS_CLASS_TEST_PEER
-
-Set peer for live tests.
-
 =head1 AUTHOR
 
 Sven Nierlein, C<< <nierlein at cpan.org> >>
+
+Robert Bohne, C<< <rbo at cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
 

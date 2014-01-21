@@ -2,8 +2,7 @@ package Monitoring::Livestatus::Class::Lite;
 
 =head1 NAME
 
-Monitoring::Livestatus::Class::Lite - Object-Oriented interface for
-Monitoring::Livestatus
+Monitoring::Livestatus::Class::Lite - Object-Oriented interface for Monitoring::Livestatus
 
 =head1 DESCRIPTION
 

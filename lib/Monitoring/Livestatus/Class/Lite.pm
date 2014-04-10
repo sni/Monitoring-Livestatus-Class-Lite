@@ -2,7 +2,8 @@ package Monitoring::Livestatus::Class::Lite;
 
 =head1 NAME
 
-Monitoring::Livestatus::Class::Lite - Object-Oriented interface for Monitoring::Livestatus
+Monitoring::Livestatus::Class::Lite - Object-Oriented interface for
+Monitoring::Livestatus
 
 =head1 DESCRIPTION
 
@@ -89,6 +90,7 @@ sub new {
         name      => $self->{'name'},
         peer      => $self->{'peer'},
         verbose   => $self->{'verbose'},
+        keepalive => $self->{'keepalive'},
     );
     bless($self, $class);
 
@@ -187,10 +189,11 @@ return result as hash ref by key
 sub hashref_pk {
     my($self, $key) = @_;
 
-    croak("no key!") unless $key;
+    confess("no key!") unless $key;
 
     my %indexed;
     my @data = $self->hashref_array();
+    confess('undefined index: '.$key) if(defined $data[0] and !defined $data[0]->{$key});
     for my $row (@data) {
         $indexed{$row->{$key}} = $row;
     }
@@ -213,9 +216,15 @@ sub hashref_array {
 }
 
 ################################################################################
-# INTERNAL SUBs
-################################################################################
-sub _execute {
+
+=head2 statement
+
+    statement()
+
+return query as text
+
+=cut
+sub statement {
     my($self) = @_;
 
     confess("no table??") unless $self->{'_table'};
@@ -238,6 +247,16 @@ sub _execute {
     printf STDERR "EXEC: %s\n", join("\nEXEC: ",@statements) if $TRACE >= 1;
 
     my $statement = join("\n",@statements);
+
+    return $statement;
+}
+
+################################################################################
+# INTERNAL SUBs
+################################################################################
+sub _execute {
+    my($self) = @_;
+    my $statement = $self->statement();
     my $options   = $self->{'_options'};
     $options->{'slice'} = {};
 
@@ -467,7 +486,7 @@ sub _cond_compining {
     }
     my ( $child_combining_count, @child_statment )= &_recurse_cond($value, 0 );
     push @statment, @child_statment;
-    if ( defined $combining ) {
+    if ( defined $combining and $child_combining_count > 1) {
         push @statment, sprintf("%s%s: %d",
             $compining_prefix,
             ucfirst( $combining ),
@@ -595,13 +614,13 @@ __END__
 
 =head1 AUTHOR
 
-Sven Nierlein, C<< <nierlein at cpan.org> >>
+Sven Nierlein, 2009-2014, <sven@nierlein.org>
 
 Robert Bohne, C<< <rbo at cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2013 Sven Nierlein.
+Sven Nierlein, 2009-2014, <sven@nierlein.org>
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

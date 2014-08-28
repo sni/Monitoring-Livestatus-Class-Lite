@@ -14,14 +14,16 @@ Just like Monitoring::Livestatus::Class but without Moose.
 
     use Monitoring::Livestatus::Class::Lite;
 
-    my $class = Monitoring::Livestatus::Class::Lite->new(
+    my $class = Monitoring::Livestatus::Class::Lite->new({
         peer => '/var/lib/nagios3/rw/livestatus.sock'
-    );
+    });
 
     my $hosts = $class->table('hosts');
     my @data = $hosts->columns('display_name')->filter(
         { display_name => { '-or' => [qw/test_host_47 test_router_3/] } }
     )->hashref_array();
+
+    use Data::Dumper;
     print Dumper \@data;
 
 =head1 ATTRIBUTES
@@ -57,10 +59,10 @@ Set peer for live tests.
 
 use warnings;
 use strict;
-use Carp;
+use Carp qw/croak confess/;
 use Scalar::Util qw/blessed/;
 use List::Util qw/first/;
-use Monitoring::Livestatus;
+use Monitoring::Livestatus qw//;
 
 our $VERSION = '0.05';
 our $TRACE   = $ENV{'MONITORING_LIVESTATUS_CLASS_TRACE'} || 0;

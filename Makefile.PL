@@ -6,7 +6,6 @@ author   q{Sven Nierlein <nierlein@cpan.org>};
 license  'perl';
 repository 'http://github.com/sni/Monitoring-Livestatus-Class-Lite';
 
-requires 'Scalar::Util';
 requires 'List::Util';
 requires 'Monitoring::Livestatus' => '0.54';
 

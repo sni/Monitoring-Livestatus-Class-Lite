@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 17;
+use Test::More tests => 21;
 use Data::Dumper;
 
 use_ok('Monitoring::Livestatus::Class::Lite');
@@ -26,8 +26,16 @@ isa_ok($class->{'backend_obj'}, "Monitoring::Livestatus");
 isa_ok($class->{'backend_obj'}->{'CONNECTOR'}, "Monitoring::Livestatus::INET");
 is($class->{'backend_obj'}->{'CONNECTOR'}->{'peer'}, "localhost:1234");
 
+# simple
 $class = Monitoring::Livestatus::Class::Lite->new('localhost:1234');
 isa_ok($class, "Monitoring::Livestatus::Class::Lite", 'simple tcp connection');
+isa_ok($class->{'backend_obj'}, "Monitoring::Livestatus");
+isa_ok($class->{'backend_obj'}->{'CONNECTOR'}, "Monitoring::Livestatus::INET");
+is($class->{'backend_obj'}->{'CONNECTOR'}->{'peer'}, "localhost:1234");
+
+# single tcp connection as hash
+$class = Monitoring::Livestatus::Class::Lite->new({ peer => 'localhost:1234' });
+isa_ok($class, "Monitoring::Livestatus::Class::Lite", 'tcp connection');
 isa_ok($class->{'backend_obj'}, "Monitoring::Livestatus");
 isa_ok($class->{'backend_obj'}->{'CONNECTOR'}, "Monitoring::Livestatus::INET");
 is($class->{'backend_obj'}->{'CONNECTOR'}->{'peer'}, "localhost:1234");

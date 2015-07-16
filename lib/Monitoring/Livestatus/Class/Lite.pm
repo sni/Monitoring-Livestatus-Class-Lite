@@ -17,6 +17,10 @@ Just like Monitoring::Livestatus::Class but without Moose.
     my $class = Monitoring::Livestatus::Class::Lite->new({
         peer => '/var/lib/nagios3/rw/livestatus.sock'
     });
+    # or shorter
+    my $class = Monitoring::Livestatus::Class::Lite->new(
+        '/var/lib/nagios3/rw/livestatus.sock'
+    );
 
     my $hosts = $class->table('hosts');
     my @data = $hosts->columns('display_name')->filter(
@@ -62,7 +66,7 @@ use strict;
 use Carp qw/croak confess/;
 use Monitoring::Livestatus ();
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 our $compining_prefix = '';
 our $filter_mode      = '';
@@ -95,7 +99,11 @@ sub new {
 
     my $self = {};
     if(scalar @args == 1) {
-        $self->{'peer'} = $args[0];
+        if(ref $args[0] eq 'HASH') {
+            $self = $args[0];
+        } else {
+            $self->{'peer'} = $args[0];
+        }
     }
     else {
         my %args = @args;

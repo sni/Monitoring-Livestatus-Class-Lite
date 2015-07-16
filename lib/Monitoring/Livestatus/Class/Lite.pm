@@ -91,10 +91,15 @@ create new Class module
 
 =cut
 sub new {
-    my($class, $self) = @_;
+    my($class, @args) = @_;
 
-    if(ref $self ne 'HASH') {
-        $self = { 'peer' => $self };
+    my $self = {};
+    if(scalar @args == 1) {
+        $self->{'peer'} = $args[0];
+    }
+    else {
+        my %args = @args;
+        $self = \%args;
     }
 
     $self->{backend_obj} = Monitoring::Livestatus->new(

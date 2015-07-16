@@ -62,7 +62,7 @@ use strict;
 use Carp qw/croak confess/;
 use Monitoring::Livestatus ();
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 our $compining_prefix = '';
 our $filter_mode      = '';
@@ -421,7 +421,7 @@ sub _cond_hashpair_SCALAR {
                                 $filter_mode,
                                 ($key || '') ,
                                 ($operator || '='),
-                                $value)
+                                $value),
     );
     $combining_count++;
     return ( $combining_count, @statement );
@@ -555,7 +555,8 @@ sub _cond_op_simple {
 
 ################################################################################
 sub _cond_op_isa {
-    my($operator, $value, $combining_count) = @_;
+    #my($operator, $value, $combining_count) = @_;
+    my(undef, $value, $combining_count) = @_;
     $combining_count = 0 unless defined $combining_count;
 
     my @keys = keys %{$value};
@@ -585,13 +586,13 @@ __END__
 
 =head1 AUTHOR
 
-Sven Nierlein, 2009-2014, <sven@nierlein.org>
+Sven Nierlein, 2009-present, <sven@nierlein.org>
 
 Robert Bohne, C<< <rbo at cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Sven Nierlein, 2009-2014, <sven@nierlein.org>
+Sven Nierlein, 2009-present, <sven@nierlein.org>
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

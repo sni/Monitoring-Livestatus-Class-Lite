@@ -1,7 +1,8 @@
 # Revision history for Monitoring-Livestatus-Class-Lite
 
-next:
-        performance tuning
+0.06    Thu Jul 16 16:25:46 CEST 2015
+        - performance tuning
+        - fix example
 
 0.05    Fri May 24 12:34:17 CEST 2013
-        First version
+        - First version
